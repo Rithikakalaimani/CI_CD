@@ -1,0 +1,12 @@
+# OS and editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Optional: uncomment if you add a static site generator later
+# node_modules/
+# dist/
+# public/
