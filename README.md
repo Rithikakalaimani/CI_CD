@@ -1,12 +1,18 @@
 # Static Site CI/CD Pipeline
 
-A small CI/CD project that deploys a static site to **GitHub Pages** only when `index.html` changes, using a path-filtered GitHub Actions workflow. Built for learning continuous integration and continuous deployment.
+[![Deploy to GitHub Pages](https://github.com/OWNER/REPO/actions/workflows/deploy.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/deploy.yml)
+
+A CI/CD project that deploys a static site to **GitHub Pages** only when `index.html` changes, with quality gates and deployment metadata. Built for learning continuous integration and continuous deployment.
+
+> **Replace `OWNER` and `REPO`** in the badge URL above with your GitHub username and repository name.
 
 ## What This Project Does
 
-- **Path-filtered deployment**: The workflow runs only when `index.html` is modified on the `main` branch. Changes to other files (e.g. README, config) do not trigger a deploy, which keeps deployments intentional and saves workflow minutes.
+- **Path-filtered deployment**: The workflow runs only when `index.html` is modified on the `main` branch. Changes to other files do not trigger a deploy.
+- **Quality gate**: Before any deploy, the workflow runs **HTML validation** (W3C Nu Validator) and **link checking** (lychee). Deploy runs only if validation passes.
+- **Pull request checks**: On pull requests that touch `index.html`, the same validation runs (no deploy). Merge only when checks are green.
+- **Deployment metadata**: Each deploy generates a `version.json` with timestamp and commit SHA. The site footer shows “Last deployed” and short SHA when viewing the live site.
 - **GitHub Pages**: The site is published using the official [GitHub Actions deployment](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site#publishing-with-a-custom-github-actions-workflow) flow (`actions/deploy-pages`).
-- **Single-page site**: The repo includes a minimal landing page in `index.html` (with inline CSS) so that any design or content change lives in one file and correctly triggers the workflow.
 
 ## Repository Setup
 
@@ -32,15 +38,15 @@ A small CI/CD project that deploys a static site to **GitHub Pages** only when `
 
 The workflow is defined in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
 
-| Step | Description |
-|------|-------------|
-| **Trigger** | `push` to `main` with changes only in `index.html` (`paths: ['index.html']`). |
-| **Checkout** | Check out the repository. |
-| **Configure Pages** | Prepare the job for GitHub Pages deployment. |
-| **Upload artifact** | Upload the repository root (containing `index.html`) as the static site artifact. |
-| **Deploy** | Deploy the artifact to GitHub Pages using `actions/deploy-pages`. |
+| Job / Step | When | Description |
+|------------|------|-------------|
+| **Trigger** | `push` to `main` or `pull_request` to `main` | Only when `index.html` changes (`paths: ['index.html']`). |
+| **validate** | Every run | Checkout → HTML validation (W3C Nu Validator) → link check (lychee). Fails the run if validation or links fail. |
+| **deploy** | Only on `push` to `main` (after validate passes) | Checkout → generate `version.json` (timestamp + SHA) → configure Pages → upload artifact (`.` including `version.json`) → deploy with `actions/deploy-pages`. |
 
 ## How to See It Working
+
+**Deploy on push to main**
 
 1. Edit `index.html` (e.g. change a heading or a line of text).
 2. Commit and push to `main`:
@@ -49,10 +55,92 @@ The workflow is defined in [`.github/workflows/deploy.yml`](.github/workflows/de
    git commit -m "Update landing page copy"
    git push origin main
    ```
-3. Open **Actions** in the repo; the “Deploy to GitHub Pages” workflow should run.
-4. After it finishes, open your GitHub Pages URL; the updated content should be live.
+3. In the repo, open **Actions**; the workflow runs (validate → deploy).
+4. After it finishes, open your GitHub Pages URL; the updated content is live and the footer shows “Last deployed” and the short commit SHA.
 
-If you push a change that does **not** touch `index.html` (e.g. only README or workflow file), the deploy workflow will not run.
+**Validation on pull requests**
+
+1. Create a branch, change `index.html`, and open a PR to `main`.
+2. The workflow runs the **validate** job only (no deploy).
+3. Merge only when checks are green; merging to `main` triggers the full deploy.
+
+If you push a change that does **not** touch `index.html`, the workflow does not run.
+
+## How to Check and See Everything
+
+Follow these steps to verify the pipeline end-to-end.
+
+### 1. Push the project and enable Pages
+
+- Create a new repo on GitHub (e.g. `static-pages-pipeline`).
+- In your project folder, run:
+  ```bash
+  cd /path/to/CICD
+  git init
+  git add .
+  git commit -m "Initial commit: static site and deploy workflow"
+  git branch -M main
+  git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+  git push -u origin main
+  ```
+- In the repo on GitHub: **Settings → Pages → Build and deployment** → set **Source** to **GitHub Actions**.
+
+### 2. Trigger a deploy and watch Actions
+
+- Edit `index.html` (e.g. change the hero heading to “Deploy on every change – verified”).
+- Commit and push:
+  ```bash
+  git add index.html
+  git commit -m "Update hero text"
+  git push origin main
+  ```
+- **Where to check:** In the repo, open the **Actions** tab.
+  - You should see a run for **“Deploy to GitHub Pages”**.
+  - Open the run → you’ll see:
+    - **validate** job: “Validate HTML (W3C Nu Validator)” and “Check links (lychee)” (both should be green).
+    - **deploy** job: “Deploy to GitHub Pages” (runs after validate).
+  - Wait until the run shows a green check.
+
+### 3. See the live site and “Last deployed”
+
+- **Where to check:** Open your GitHub Pages URL:  
+  `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/`
+- You should see your updated content (e.g. the new hero text).
+- Scroll to the **footer**. You should see something like:  
+  **“Last deployed: &lt;date/time&gt; · &lt;short-sha&gt;”**  
+  That confirms the deploy ran and `version.json` is being loaded.
+
+### 4. See that only `index.html` triggers the workflow
+
+- Change **only** the README (e.g. add a line), then commit and push:
+  ```bash
+  git add README.md
+  git commit -m "Docs: update README"
+  git push origin main
+  ```
+- **Where to check:** **Actions** tab.  
+  There should be **no** new run for “Deploy to GitHub Pages”, because `index.html` didn’t change.
+
+### 5. See PR validation (no deploy)
+
+- Create a branch, change `index.html`, and open a PR to `main`:
+  ```bash
+  git checkout -b test-pr-check
+  # edit index.html (e.g. change one word)
+  git add index.html
+  git commit -m "Test: PR validation"
+  git push -u origin test-pr-check
+  ```
+- On GitHub, open a **Pull request** from `test-pr-check` to `main`.
+- **Where to check:** On the PR page, the **Checks** section should show the workflow running. Open **Details** → you’ll see only the **validate** job (no **deploy** job). Merge when it’s green.
+
+### 6. Update the README badge (optional)
+
+- In the README at the top, replace `OWNER` and `REPO` in the badge URL with your GitHub username and repo name, e.g.:  
+  `https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/actions/workflows/deploy.yml/badge.svg`  
+  Then the badge will show the status of your workflow (passing/failing) on the repo’s main page.
+
+---
 
 ## Project Structure
 
@@ -60,22 +148,28 @@ If you push a change that does **not** touch `index.html` (e.g. only README or w
 .
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml    # Workflow: runs only on index.html change, deploys to Pages
-├── index.html            # Single-page site (content + inline styles)
-└── README.md             # This file
+│       └── deploy.yml    # Validate + deploy workflow (path-filtered, PR + push)
+├── index.html            # Single-page site (content + inline styles; loads version.json in footer)
+├── README.md             # This file
+└── .gitignore            # version.json is generated in CI, not committed
 ```
 
 ## Resume / Interview Talking Points
 
-- **CI/CD**: Automated deployment on push to `main`, with a clear trigger (change to `index.html`).
-- **Path filters**: Using `paths` in the workflow to avoid unnecessary runs and focus deploys on the actual site file.
-- **GitHub Actions**: Use of `actions/checkout`, `actions/configure-pages`, `actions/upload-pages-artifact`, and `actions/deploy-pages`.
-- **GitHub Pages**: Publishing a static site with no extra hosting setup.
+- **CI/CD**: Automated deployment on push to `main`, with a path-filtered trigger and quality gate before deploy.
+- **Quality gates**: HTML validation (W3C Nu Validator) and link checking (lychee) must pass before deployment; failed validation blocks deploy.
+- **Pull request integration**: Same validation runs on PRs that change `index.html`; deploy only on merge to `main`.
+- **Path filters**: Workflow runs only when `index.html` changes, saving workflow minutes and keeping deploys intentional.
+- **Deployment metadata**: CI generates `version.json` (timestamp, commit SHA); the site displays “Last deployed” in the footer for traceability.
+- **GitHub Actions**: Use of `actions/checkout`, `actions/configure-pages`, `actions/upload-pages-artifact`, `actions/deploy-pages`, and third-party validation/link-check actions.
+- **GitHub Pages**: Static site hosting with zero extra configuration.
 
 ## Optional Next Steps
 
-- Add more static assets (images, CSS/JS files) and, if you want deploys only for the site, extend the workflow `paths` to include those files.
-- Try a static site generator (e.g. Hugo, Jekyll, Astro): build in the workflow and set `path` in `upload-pages-artifact` to the build output directory (e.g. `dist/` or `public/`), and add the source directories or key files to `paths` so only relevant changes trigger a deploy.
+- Add more static assets and extend workflow `paths` so only site-related changes trigger runs.
+- Add a **Lighthouse CI** or **performance budget** job to enforce performance/SEO before deploy.
+- Use a static site generator (Hugo, Jekyll, Astro): add a build job, upload the build output as the artifact, and trigger on source file changes.
+- Add **branch protection** on `main` so PRs must pass the “Validate site” workflow before merge.
 
 ## License
 

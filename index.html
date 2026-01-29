@@ -97,6 +97,7 @@
       border-top: 1px solid rgba(148, 163, 184, 0.2);
     }
     footer a { color: var(--accent); text-decoration: none; }
+    #deploy-info { display: block; margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.9; }
   </style>
 </head>
 <body>
@@ -139,6 +140,21 @@
     Built as a CI/CD learning project. View the
     <a href="https://github.com" target="_blank" rel="noopener">repository</a>
     for workflow and setup details.
+    <span id="deploy-info" aria-live="polite"></span>
   </footer>
+  <script>
+    (function () {
+      fetch('version.json')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (v) {
+          if (!v) return;
+          var d = v.deployedAt ? new Date(v.deployedAt).toLocaleString() : '';
+          var sha = v.shortSha || (v.sha && v.sha.slice(0, 7)) || '';
+          var el = document.getElementById('deploy-info');
+          if (el && (d || sha)) el.textContent = 'Last deployed: ' + d + (sha ? ' · ' + sha : '');
+        })
+        .catch(function () {});
+    })();
+  </script>
 </body>
 </html>

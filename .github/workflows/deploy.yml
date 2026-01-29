@@ -1,10 +1,15 @@
 # Deploy to GitHub Pages only when index.html changes
+# Includes: quality gate (validate), PR checks, deploy metadata
 # See README for setup and repository settings
 
 name: Deploy to GitHub Pages
 
 on:
   push:
+    branches: [main]
+    paths:
+      - 'index.html'
+  pull_request:
     branches: [main]
     paths:
       - 'index.html'
@@ -15,16 +20,52 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: "pages-${{ github.ref }}"
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  validate:
+    name: Validate site
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate HTML (W3C Nu Validator)
+        run: |
+          RESP=$(curl -sS -H "Content-Type: text/html; charset=utf-8" \
+            --data-binary @index.html \
+            "https://validator.nu/?out=json")
+          ERRORS=$(echo "$RESP" | jq -r '[.messages[]? | select(.type == "error")] | length')
+          if [ "$ERRORS" != "0" ]; then
+            echo "$RESP" | jq -r '.messages[]? | select(.type == "error") | "\(.message)"'
+            echo "HTML validation failed with $ERRORS error(s)"
+            exit 1
+          fi
+          echo "HTML validation passed (0 errors)"
+
+      - name: Check links (lychee)
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: '--root-dir . index.html'
+          fail: true
+          failIfEmpty: false
+
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: github-pages
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Generate deployment metadata
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "{\"deployedAt\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"sha\":\"${{ github.sha }}\",\"shortSha\":\"${SHORT_SHA}\"}" > version.json
+          cat version.json
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v4
