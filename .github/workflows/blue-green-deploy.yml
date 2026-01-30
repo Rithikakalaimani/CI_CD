@@ -110,6 +110,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: inactive-slot-build
+          path: inactive-slot-build
       - name: Update inactive slot
         run: |
           INACTIVE="${{ steps.slot.outputs.inactive }}"
