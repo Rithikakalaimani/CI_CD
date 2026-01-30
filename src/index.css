@@ -1,0 +1,79 @@
+:root {
+  --sky-deep: #0d0a1a;
+  --sky-mid: #1a1535;
+  --sakura: #ffb7c5;
+  --sakura-dim: #e8a0b0;
+  --lantern: #ffd93d;
+  --lantern-glow: #ffeb99;
+  --torii: #c41e3a;
+  --ink: #2d2640;
+  --paper: #f5f0e8;
+  --accent: #7b68ee;
+  --success: #6bcb77;
+  --danger: #ff6b6b;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Outfit', 'Noto Sans JP', sans-serif;
+  background: var(--sky-deep);
+  color: var(--paper);
+}
+
+/* HUD */
+.hud {
+  position: fixed;
+  pointer-events: none;
+  z-index: 10;
+}
+.hud * {
+  pointer-events: auto;
+}
+
+/* Anime-style panels */
+.panel {
+  background: linear-gradient(145deg, rgba(45, 38, 64, 0.95) 0%, rgba(26, 21, 53, 0.98) 100%);
+  border: 2px solid var(--sakura-dim);
+  border-radius: 16px;
+  box-shadow: 0 0 30px rgba(255, 183, 197, 0.15), inset 0 1px 0 rgba(255,255,255,0.08);
+  padding: 1.25rem 1.5rem;
+}
+
+.panel-title {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 900;
+  font-size: 1.1rem;
+  color: var(--sakura);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.02em;
+}
+
+.panel-body {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: rgba(245, 240, 232, 0.9);
+}
+
+button.primary {
+  background: linear-gradient(180deg, var(--sakura) 0%, var(--sakura-dim) 100%);
+  color: var(--ink);
+  border: none;
+  border-radius: 12px;
+  padding: 0.6rem 1.2rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+button.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 183, 197, 0.4);
+}

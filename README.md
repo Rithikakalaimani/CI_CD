@@ -1,14 +1,26 @@
-# Static Site CI/CD Pipeline
+# Pipeline Shrine — CI/CD Learning Hub
 
 [![Deploy to GitHub Pages](https://github.com/OWNER/REPO/actions/workflows/deploy.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/deploy.yml)
 
-A CI/CD project that deploys a static site to **GitHub Pages** only when `index.html` changes, with quality gates and deployment metadata. Built for learning continuous integration and continuous deployment.
+An **anime-themed 3D learning environment** where you explore CI/CD concepts by visiting shrines in a simulated world. Built with **React**, **Vite**, and **Three.js** (React Three Fiber). The app is deployed to **GitHub Pages** via a path-filtered workflow with quality gates and Lighthouse CI.
 
 > **Replace `OWNER` and `REPO`** in the badge URL above with your GitHub username and repository name.
 
-## What This Project Does
+## The App — Pipeline Shrine
 
-- **Path-filtered deployment**: The workflow runs only when `index.html` or `lighthouserc.json` is modified on the `main` branch.
+- **3D world**: A Japanese-anime–style night scene with stars and five shrines (stages). Drag to rotate, scroll to zoom.
+- **Learning stages**: Each shrine teaches one CI/CD concept — **Commit**, **Build**, **Test**, **Deploy**, **Monitor**. Click a shrine to open a panel with **live metrics** (from version.json and GitHub API).
+- **Analytics Hub**: Use the top-right **Analytics Hub** button to open a dashboard with **real-time** pipeline metrics: commits today, last deploy, build time, tests passed, commit SHA, and stages visited.
+- **Tech**: Vite + React, React Three Fiber + Drei for 3D.
+
+### Real-time analytics
+
+- **version.json** (written by CI at deploy): `deployedAt`, `shortSha`, `buildDurationSeconds`, `checksPassed`. The app fetches it from the deployed site and shows “Last deploy”, “Build time”, “Tests passed”, “Commit SHA”, “Pipeline health”.
+- **Commits today**: Set `VITE_GITHUB_REPO=owner/repo` (e.g. in a `.env` file or in your hosting env) so the app can call the public GitHub API for commit count since midnight UTC. Without it, “Commits today” shows —.
+
+## What This Project Does (CI/CD)
+
+- **Path-filtered deployment**: The workflow runs when `index.html`, `lighthouserc.json`, `src/**`, or package files change on `main`.
 - **Quality gate**: Before any deploy, the workflow runs **HTML validation** (W3C Nu Validator), **link checking** (lychee), and **Lighthouse CI** (performance, accessibility, best practices, SEO). Deploy runs only if all pass.
 - **Lighthouse CI**: The site is audited locally with score assertions; reports are uploaded as workflow artifacts and to temporary public storage.
 - **Pull request checks**: On pull requests that touch `index.html` or `lighthouserc.json`, the same checks run (no deploy). Merge only when checks are green.
@@ -40,12 +52,13 @@ A CI/CD project that deploys a static site to **GitHub Pages** only when `index.
 
 The workflow is defined in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
 
-| Job / Step    | When                                             | Description                                                                                                                                                   |
-| ------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Trigger**   | `push` to `main` or `pull_request` to `main`     | Only when `index.html` or `lighthouserc.json` changes.                                                                                                        |
-| **validate**  | Every run                                        | Checkout → HTML validation (W3C Nu Validator) → link check (lychee). Fails the run if validation or links fail.                                                 |
-| **lighthouse**| Every run                                        | Checkout → run Lighthouse CI against the static site (see `lighthouserc.json`). Asserts performance, accessibility, best practices, SEO. Uploads reports.    |
-| **deploy**    | Only on `push` to `main` (after validate + lighthouse pass) | Checkout → generate `version.json` → configure Pages → upload artifact → deploy with `actions/deploy-pages`.                                          |
+| Job / Step     | When                                                        | Description                                                                                                                                               |
+| -------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Trigger**    | `push` or `pull_request` to `main`                           | When `index.html`, `lighthouserc.json`, `src/**`, or package files change.                                                                                 |
+| **validate**   | Every run                                                   | Checkout → HTML validation (W3C Nu Validator) → link check (lychee).                                                                                      |
+| **build**      | Every run                                                   | Checkout → `npm ci` → `npm run build` → generate `version.json` in dist → upload **dist** as Pages artifact.                                               |
+| **lighthouse** | After build                                                 | Checkout → build → run Lighthouse CI against **dist** (see `lighthouserc.json`). Asserts performance, accessibility, best practices, SEO.               |
+| **deploy**     | Only on `push` to `main` (after validate + build + lighthouse) | Configure Pages → deploy using the artifact uploaded by **build**.                                                                                        |
 
 ## How to See It Working
 
@@ -147,7 +160,7 @@ Follow these steps to verify the pipeline end-to-end.
 
 ## Lighthouse CI
 
-The pipeline runs [Lighthouse CI](https://github.com/GoogleChrome/lighthouse-ci) via [treosh/lighthouse-ci-action](https://github.com/treosh/lighthouse-ci-action). The site is served from the repo root (no deploy needed); Lighthouse audits it and asserts:
+The pipeline runs [Lighthouse CI](https://github.com/GoogleChrome/lighthouse-ci) via [treosh/lighthouse-ci-action](https://github.com/treosh/lighthouse-ci-action). After `npm run build`, Lighthouse audits the **dist/** output and asserts:
 
 - **Performance** ≥ 0.6 (warn)
 - **Accessibility** ≥ 0.85 (error)
@@ -160,13 +173,23 @@ Configuration is in [**lighthouserc.json**](lighthouserc.json). You can change t
 
 ```
 .
-├── .github/
-│   └── workflows/
-│       └── deploy.yml    # Validate + Lighthouse CI + deploy (path-filtered, PR + push)
-├── lighthouserc.json     # Lighthouse CI config (staticDistDir, assertions)
-├── index.html            # Single-page site (content + inline styles; loads version.json in footer)
-├── README.md             # This file
-└── .gitignore            # version.json is generated in CI, not committed
+├── .github/workflows/
+│   └── deploy.yml        # Validate → build → Lighthouse CI → deploy
+├── src/
+│   ├── main.jsx          # Entry
+│   ├── App.jsx           # Root: Scene, OverlayPanel, AnalyticsHub
+│   ├── index.css         # Global styles (anime theme)
+│   ├── content/
+│   │   └── stages.js     # CI/CD learning stages (shrines)
+│   └── components/
+│       ├── World/        # 3D scene, StagePillar
+│       ├── OverlayPanel.jsx
+│       └── AnalyticsHub.jsx
+├── index.html            # Vite entry
+├── package.json
+├── vite.config.js
+├── lighthouserc.json     # Lighthouse CI (staticDistDir: dist)
+└── README.md
 ```
 
 ## Resume / Interview Talking Points

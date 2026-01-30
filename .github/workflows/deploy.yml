@@ -1,5 +1,5 @@
-# Deploy to GitHub Pages only when index.html changes
-# Includes: quality gate (validate), PR checks, deploy metadata
+# Deploy to GitHub Pages — build Vite app, then deploy
+# Triggers on index.html, lighthouserc.json, src, or package files
 # See README for setup and repository settings
 
 name: Deploy to GitHub Pages
@@ -10,11 +10,19 @@ on:
     paths:
       - "index.html"
       - "lighthouserc.json"
+      - "package.json"
+      - "package-lock.json"
+      - "src/**"
+      - "vite.config.js"
   pull_request:
     branches: [main]
     paths:
       - "index.html"
       - "lighthouserc.json"
+      - "package.json"
+      - "package-lock.json"
+      - "src/**"
+      - "vite.config.js"
 
 permissions:
   contents: read
@@ -54,12 +62,64 @@ jobs:
           failIfEmpty: false
           jobSummary: false
 
-  lighthouse:
-    name: Lighthouse CI
+  build:
+    name: Build app
     runs-on: ubuntu-latest
+    env:
+      VITE_GITHUB_REPO: ${{ github.repository }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        id: build
+        run: |
+          START=$(date +%s)
+          npm run build
+          END=$(date +%s)
+          echo "duration=$((END - START))" >> "$GITHUB_OUTPUT"
+
+      - name: Generate deployment metadata
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          BUILD_SECS="${{ steps.build.outputs.duration }}"
+          DEPLOYED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          echo "{\"deployedAt\":\"${DEPLOYED_AT}\",\"sha\":\"${{ github.sha }}\",\"shortSha\":\"${SHORT_SHA}\",\"buildDurationSeconds\":${BUILD_SECS},\"checksPassed\":3}" > dist/version.json
+          cat dist/version.json
+
+      - name: Upload build artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "dist"
+
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
 
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
@@ -71,26 +131,12 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
-    needs: [validate, lighthouse]
+    needs: [validate, build, lighthouse]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: github-pages
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Generate deployment metadata
-        run: |
-          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          echo "{\"deployedAt\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"sha\":\"${{ github.sha }}\",\"shortSha\":\"${SHORT_SHA}\"}" > version.json
-          cat version.json
-
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v4
-
-      - name: Upload static site artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: "."
 
       - name: Deploy to GitHub Pages
         id: deployment
