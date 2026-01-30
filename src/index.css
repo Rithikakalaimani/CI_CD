@@ -62,7 +62,8 @@ html, body, #root {
   color: rgba(245, 240, 232, 0.9);
 }
 
-button.primary {
+button.primary,
+a.primary {
   background: linear-gradient(180deg, var(--sakura) 0%, var(--sakura-dim) 100%);
   color: var(--ink);
   border: none;
@@ -72,8 +73,14 @@ button.primary {
   font-family: inherit;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
+  display: inline-block;
+  text-align: center;
 }
-button.primary:hover {
+button.primary:hover,
+a.primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(255, 183, 197, 0.4);
+}
+a.primary {
+  text-decoration: none;
 }

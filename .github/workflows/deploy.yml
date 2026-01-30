@@ -12,6 +12,7 @@ on:
       - "lighthouserc.json"
       - "package.json"
       - "package-lock.json"
+      - "scripts/**"
       - "src/**"
       - "vite.config.js"
   pull_request:
@@ -21,6 +22,7 @@ on:
       - "lighthouserc.json"
       - "package.json"
       - "package-lock.json"
+      - "scripts/**"
       - "src/**"
       - "vite.config.js"
 

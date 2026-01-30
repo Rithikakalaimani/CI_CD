@@ -1,0 +1,154 @@
+{
+  "generatedAt": "2026-01-30T18:33:14.877Z",
+  "workflowName": "Deploy to GitHub Pages",
+  "workflowFile": "deploy.yml",
+  "triggers": [
+    {
+      "event": "push",
+      "branches": [
+        "main"
+      ],
+      "paths": [
+        "index.html",
+        "lighthouserc.json",
+        "package.json",
+        "package-lock.json",
+        "scripts/**",
+        "src/**",
+        "vite.config.js"
+      ],
+      "description": "Push to branch"
+    },
+    {
+      "event": "pull_request",
+      "branches": [
+        "main"
+      ],
+      "paths": [
+        "index.html",
+        "lighthouserc.json",
+        "package.json",
+        "package-lock.json",
+        "scripts/**",
+        "src/**",
+        "vite.config.js"
+      ],
+      "description": "Pull request targeting branch"
+    }
+  ],
+  "jobs": [
+    {
+      "id": "validate",
+      "name": "Validate site",
+      "needs": [],
+      "runsOn": "ubuntu-latest",
+      "environment": null,
+      "condition": null,
+      "qualityGates": [
+        {
+          "name": "HTML (W3C Nu Validator)",
+          "type": "validation",
+          "blocksDeploy": true
+        },
+        {
+          "name": "Link check (Lychee)",
+          "type": "validation",
+          "blocksDeploy": true
+        }
+      ]
+    },
+    {
+      "id": "build",
+      "name": "Build app",
+      "needs": [],
+      "runsOn": "ubuntu-latest",
+      "environment": null,
+      "condition": null,
+      "qualityGates": [
+        {
+          "name": "npm audit (high/critical)",
+          "type": "security",
+          "blocksDeploy": true
+        },
+        {
+          "name": "Vite build",
+          "type": "build",
+          "blocksDeploy": true
+        }
+      ]
+    },
+    {
+      "id": "lighthouse",
+      "name": "Lighthouse CI",
+      "needs": [
+        "build"
+      ],
+      "runsOn": "ubuntu-latest",
+      "environment": null,
+      "condition": null,
+      "qualityGates": [
+        {
+          "name": "Lighthouse CI (performance, a11y, best-practices, SEO)",
+          "type": "quality",
+          "blocksDeploy": true
+        }
+      ]
+    },
+    {
+      "id": "deploy",
+      "name": "Deploy to GitHub Pages",
+      "needs": [
+        "validate",
+        "build",
+        "lighthouse"
+      ],
+      "runsOn": "ubuntu-latest",
+      "environment": "github-pages",
+      "condition": "github.event_name == 'push' && github.ref == 'refs/heads/main'",
+      "qualityGates": []
+    },
+    {
+      "id": "smoke-test",
+      "name": "Post-deploy smoke test",
+      "needs": [
+        "deploy"
+      ],
+      "runsOn": "ubuntu-latest",
+      "environment": null,
+      "condition": "github.event_name == 'push' && github.ref == 'refs/heads/main'",
+      "qualityGates": [
+        {
+          "name": "HTTP 200 + critical content",
+          "type": "smoke",
+          "blocksDeploy": false
+        }
+      ]
+    }
+  ],
+  "environments": [
+    {
+      "id": "runner",
+      "name": "GitHub-hosted runner",
+      "value": "ubuntu-latest",
+      "usedBy": [
+        "validate",
+        "build",
+        "lighthouse",
+        "deploy",
+        "smoke-test"
+      ]
+    },
+    {
+      "id": "github-pages",
+      "name": "GitHub Pages",
+      "value": "github-pages",
+      "usedBy": [
+        "deploy"
+      ]
+    }
+  ],
+  "concurrency": {
+    "group": "pages-${{ github.ref }}",
+    "cancelInProgress": false
+  }
+}

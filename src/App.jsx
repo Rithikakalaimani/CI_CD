@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import confetti from 'canvas-confetti'
 import { Scene } from './components/World/Scene'
 import { OverlayPanel } from './components/OverlayPanel'
@@ -93,14 +94,19 @@ export default function App() {
             })}
           </div>
         </div>
-        <button
-          type="button"
-          className="primary"
-          onClick={() => setShowHub(true)}
-          style={{ pointerEvents: 'auto' }}
-        >
-          Analytics Hub
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <Link to="/architecture" className="primary" style={{ pointerEvents: 'auto', textDecoration: 'none', padding: '0.6rem 1rem' }}>
+            Architecture
+          </Link>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => setShowHub(true)}
+            style={{ pointerEvents: 'auto' }}
+          >
+            Analytics Hub
+          </button>
+        </div>
       </div>
 
       {/* 3D world */}
