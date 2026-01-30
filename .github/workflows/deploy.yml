@@ -49,10 +49,10 @@ jobs:
       - name: Check links (lychee)
         uses: lycheeverse/lychee-action@v2
         with:
-          args: "--root-dir ${{ github.workspace }} --mode plain index.html"
+          args: "--root-dir ${{ github.workspace }} index.html"
           fail: true
           failIfEmpty: false
-          checkbox: false
+          jobSummary: false
 
   lighthouse:
     name: Lighthouse CI
