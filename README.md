@@ -18,13 +18,13 @@ An anime-themed **3D learning app** for CI/CD: explore concepts by visiting shri
 
 **Stack:** Vite, React, Three.js , Cytoscape.js (DAG).
 
-!(https://github.com/Rithikakalaimani/CI_CD/blob/main/screenshots/Screenshot%202026-01-31%20at%2012.21.47%E2%80%AFAM.png)
+![3d](https://github.com/Rithikakalaimani/CI_CD/blob/main/screenshots/Screenshot%202026-01-31%20at%2012.21.47%E2%80%AFAM.png)
 
-!(https://github.com/Rithikakalaimani/CI_CD/blob/main/screenshots/Screenshot%202026-01-31%20at%2012.22.01%E2%80%AFAM.png)
+![shrine](https://github.com/Rithikakalaimani/CI_CD/blob/main/screenshots/Screenshot%202026-01-31%20at%2012.22.01%E2%80%AFAM.png)
 
-!(https://github.com/Rithikakalaimani/CI_CD/blob/main/screenshots/Screenshot%202026-01-31%20at%2012.22.31%E2%80%AFAM.png)
+![ana](https://github.com/Rithikakalaimani/CI_CD/blob/main/screenshots/Screenshot%202026-01-31%20at%2012.22.31%E2%80%AFAM.png)
 
-!(https://github.com/Rithikakalaimani/CI_CD/blob/main/screenshots/Screenshot%202026-01-31%20at%2012.22.49%E2%80%AFAM.png)
+![archi](https://github.com/Rithikakalaimani/CI_CD/blob/main/screenshots/Screenshot%202026-01-31%20at%2012.22.49%E2%80%AFAM.png)
 
 ---
 
