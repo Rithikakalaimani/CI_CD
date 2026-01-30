@@ -52,6 +52,7 @@ jobs:
           args: "--root-dir ${{ github.workspace }} --mode plain index.html"
           fail: true
           failIfEmpty: false
+          checkbox: false
 
   lighthouse:
     name: Lighthouse CI
