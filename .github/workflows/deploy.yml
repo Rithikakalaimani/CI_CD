@@ -80,6 +80,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
       - name: Build
         id: build
         run: |
@@ -141,6 +144,17 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Notify on deploy (optional)
+        if: success()
+        env:
+          WEBHOOK_URL: ${{ secrets.DEPLOY_NOTIFY_WEBHOOK }}
+        run: |
+          if [ -n "$WEBHOOK_URL" ]; then
+            curl -sS -X POST -H "Content-Type: application/json" \
+              -d "{\"text\":\"Deployed: ${{ github.repository }} @ ${{ github.sha }}\"}" \
+              "$WEBHOOK_URL" || true
+          fi
 
   smoke-test:
     name: Post-deploy smoke test

@@ -1,0 +1,28 @@
+# Scheduled availability check — curl live site on a schedule (and manually)
+# Resume: "Scheduled availability checks to monitor production."
+
+name: Availability check
+
+on:
+  schedule:
+    # Every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Check site is up
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check site availability
+        run: |
+          OWNER="${GITHUB_REPOSITORY%%/*}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+          URL="https://${OWNER}.github.io/${REPO}/"
+          echo "Checking $URL"
+          HTTP=$(curl -sS -o /dev/null -w "%{http_code}" --connect-timeout 15 --max-time 30 "$URL")
+          if [ "$HTTP" != "200" ]; then
+            echo "Site returned HTTP $HTTP (expected 200)"
+            exit 1
+          fi
+          echo "Site is up (HTTP 200)"
