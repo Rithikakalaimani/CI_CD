@@ -8,9 +8,10 @@ A CI/CD project that deploys a static site to **GitHub Pages** only when `index.
 
 ## What This Project Does
 
-- **Path-filtered deployment**: The workflow runs only when `index.html` is modified on the `main` branch. Changes to other files do not trigger a deploy.
-- **Quality gate**: Before any deploy, the workflow runs **HTML validation** (W3C Nu Validator) and **link checking** (lychee). Deploy runs only if validation passes.
-- **Pull request checks**: On pull requests that touch `index.html`, the same validation runs (no deploy). Merge only when checks are green.
+- **Path-filtered deployment**: The workflow runs only when `index.html` or `lighthouserc.json` is modified on the `main` branch.
+- **Quality gate**: Before any deploy, the workflow runs **HTML validation** (W3C Nu Validator), **link checking** (lychee), and **Lighthouse CI** (performance, accessibility, best practices, SEO). Deploy runs only if all pass.
+- **Lighthouse CI**: The site is audited locally with score assertions; reports are uploaded as workflow artifacts and to temporary public storage.
+- **Pull request checks**: On pull requests that touch `index.html` or `lighthouserc.json`, the same checks run (no deploy). Merge only when checks are green.
 - **Deployment metadata**: Each deploy generates a `version.json` with timestamp and commit SHA. The site footer shows “Last deployed” and short SHA when viewing the live site.
 - **GitHub Pages**: The site is published using the official [GitHub Actions deployment](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site#publishing-with-a-custom-github-actions-workflow) flow (`actions/deploy-pages`).
 
@@ -19,6 +20,7 @@ A CI/CD project that deploys a static site to **GitHub Pages** only when `index.
 1. **Create a new repository** on GitHub (e.g. `static-pages-pipeline` or any name you prefer). Do not initialize with a README if you are pushing this project into it.
 
 2. **Publish this project** to that repo:
+
    ```bash
    git init
    git add .
@@ -29,20 +31,21 @@ A CI/CD project that deploys a static site to **GitHub Pages** only when `index.
    ```
 
 3. **Enable GitHub Pages from GitHub Actions**  
-   In the repo: **Settings → Pages → Build and deployment**  
+   In the repo: **Settings → Pages → Build and deployment**
    - **Source**: choose **GitHub Actions**.  
-   After the first run of the workflow, the site will be available at:
-   `https://<username>.github.io/<repo-name>/`
+     After the first run of the workflow, the site will be available at:
+     `https://<username>.github.io/<repo-name>/`
 
 ## Workflow Overview
 
 The workflow is defined in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
 
-| Job / Step | When | Description |
-|------------|------|-------------|
-| **Trigger** | `push` to `main` or `pull_request` to `main` | Only when `index.html` changes (`paths: ['index.html']`). |
-| **validate** | Every run | Checkout → HTML validation (W3C Nu Validator) → link check (lychee). Fails the run if validation or links fail. |
-| **deploy** | Only on `push` to `main` (after validate passes) | Checkout → generate `version.json` (timestamp + SHA) → configure Pages → upload artifact (`.` including `version.json`) → deploy with `actions/deploy-pages`. |
+| Job / Step    | When                                             | Description                                                                                                                                                   |
+| ------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Trigger**   | `push` to `main` or `pull_request` to `main`     | Only when `index.html` or `lighthouserc.json` changes.                                                                                                        |
+| **validate**  | Every run                                        | Checkout → HTML validation (W3C Nu Validator) → link check (lychee). Fails the run if validation or links fail.                                                 |
+| **lighthouse**| Every run                                        | Checkout → run Lighthouse CI against the static site (see `lighthouserc.json`). Asserts performance, accessibility, best practices, SEO. Uploads reports.    |
+| **deploy**    | Only on `push` to `main` (after validate + lighthouse pass) | Checkout → generate `version.json` → configure Pages → upload artifact → deploy with `actions/deploy-pages`.                                          |
 
 ## How to See It Working
 
@@ -55,7 +58,7 @@ The workflow is defined in [`.github/workflows/deploy.yml`](.github/workflows/de
    git commit -m "Update landing page copy"
    git push origin main
    ```
-3. In the repo, open **Actions**; the workflow runs (validate → deploy).
+3. In the repo, open **Actions**; the workflow runs (validate + lighthouse → deploy).
 4. After it finishes, open your GitHub Pages URL; the updated content is live and the footer shows “Last deployed” and the short commit SHA.
 
 **Validation on pull requests**
@@ -142,13 +145,25 @@ Follow these steps to verify the pipeline end-to-end.
 
 ---
 
+## Lighthouse CI
+
+The pipeline runs [Lighthouse CI](https://github.com/GoogleChrome/lighthouse-ci) via [treosh/lighthouse-ci-action](https://github.com/treosh/lighthouse-ci-action). The site is served from the repo root (no deploy needed); Lighthouse audits it and asserts:
+
+- **Performance** ≥ 0.6 (warn)
+- **Accessibility** ≥ 0.85 (error)
+- **Best practices** ≥ 0.85 (warn)
+- **SEO** ≥ 0.85 (warn)
+
+Configuration is in [**lighthouserc.json**](lighthouserc.json). You can change thresholds or add audits there. Reports are saved as workflow artifacts and (optionally) to temporary public storage so you can open the HTML report from the Actions run.
+
 ## Project Structure
 
 ```
 .
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml    # Validate + deploy workflow (path-filtered, PR + push)
+│       └── deploy.yml    # Validate + Lighthouse CI + deploy (path-filtered, PR + push)
+├── lighthouserc.json     # Lighthouse CI config (staticDistDir, assertions)
 ├── index.html            # Single-page site (content + inline styles; loads version.json in footer)
 ├── README.md             # This file
 └── .gitignore            # version.json is generated in CI, not committed
@@ -157,7 +172,7 @@ Follow these steps to verify the pipeline end-to-end.
 ## Resume / Interview Talking Points
 
 - **CI/CD**: Automated deployment on push to `main`, with a path-filtered trigger and quality gate before deploy.
-- **Quality gates**: HTML validation (W3C Nu Validator) and link checking (lychee) must pass before deployment; failed validation blocks deploy.
+- **Quality gates**: HTML validation (W3C Nu Validator), link checking (lychee), and Lighthouse CI (performance, accessibility, best practices, SEO) must pass before deployment; any failure blocks deploy.
 - **Pull request integration**: Same validation runs on PRs that change `index.html`; deploy only on merge to `main`.
 - **Path filters**: Workflow runs only when `index.html` changes, saving workflow minutes and keeping deploys intentional.
 - **Deployment metadata**: CI generates `version.json` (timestamp, commit SHA); the site displays “Last deployed” in the footer for traceability.
