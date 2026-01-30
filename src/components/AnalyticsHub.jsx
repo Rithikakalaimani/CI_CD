@@ -31,11 +31,11 @@ export function AnalyticsHub({ visitedStages, analytics, onClose }) {
         }}
       >
         <div className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <span style={{ fontSize: '1.5rem' }}>📊</span>
+          {/* <span style={{ fontSize: '1.5rem' }}></span> */}
           Analytics Hub
         </div>
         <div style={{ fontSize: '0.85rem', color: 'rgba(245,240,232,0.8)', marginBottom: 20 }}>
-          Live pipeline metrics from version.json and GitHub API. Set <code style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: 4 }}>VITE_GITHUB_REPO=owner/repo</code> for commits today.
+          Live pipeline metrics from version.json and GitHub API. 
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
           {metrics.map((m) => (

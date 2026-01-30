@@ -48,6 +48,16 @@ An **anime-themed 3D learning environment** where you explore CI/CD concepts by 
      After the first run of the workflow, the site will be available at:
      `https://<username>.github.io/<repo-name>/`
 
+4. **Branch protection (recommended)**  
+   Require CI checks before merging to `main`: **Settings → Branches → Add rule** (or **Branch protection rules**).
+   - **Branch name pattern**: `main`
+   - Enable **Require status checks to pass before merging**
+   - In **Status checks that are required**, search and add:
+     - **Validate site**
+     - **Lighthouse CI**
+   - Save. PRs targeting `main` will then need both checks to pass before merge.  
+   *Resume: “Enforced branch protection with required CI checks before merge to main.”*
+
 ## Workflow Overview
 
 The workflow is defined in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
@@ -59,6 +69,7 @@ The workflow is defined in [`.github/workflows/deploy.yml`](.github/workflows/de
 | **build**      | Every run                                                   | Checkout → `npm ci` → `npm run build` → generate `version.json` in dist → upload **dist** as Pages artifact.                                               |
 | **lighthouse** | After build                                                 | Checkout → build → run Lighthouse CI against **dist** (see `lighthouserc.json`). Asserts performance, accessibility, best practices, SEO.               |
 | **deploy**     | Only on `push` to `main` (after validate + build + lighthouse) | Configure Pages → deploy using the artifact uploaded by **build**.                                                                                        |
+| **smoke-test**| Only on `push` to `main` (after deploy)                         | Wait for Pages → curl live URL → assert HTTP 200 and that critical content (e.g. "Pipeline Shrine") is present.                                          |
 
 ## How to See It Working
 
@@ -195,9 +206,11 @@ Configuration is in [**lighthouserc.json**](lighthouserc.json). You can change t
 ## Resume / Interview Talking Points
 
 - **CI/CD**: Automated deployment on push to `main`, with a path-filtered trigger and quality gate before deploy.
+- **Branch protection**: Enforced branch protection with required CI checks (“Validate site”, “Lighthouse CI”) before merge to `main` — see [Repository Setup](#repository-setup) step 4.
 - **Quality gates**: HTML validation (W3C Nu Validator), link checking (lychee), and Lighthouse CI (performance, accessibility, best practices, SEO) must pass before deployment; any failure blocks deploy.
-- **Pull request integration**: Same validation runs on PRs that change `index.html`; deploy only on merge to `main`.
-- **Path filters**: Workflow runs only when `index.html` changes, saving workflow minutes and keeping deploys intentional.
+- **Post-deploy smoke test**: After deploy, a job curls the live GitHub Pages URL, asserts HTTP 200, and checks that critical content (e.g. “Pipeline Shrine”) is present. *Resume: “Post-deployment smoke tests to verify production availability and critical content.”*
+- **Pull request integration**: Same validation runs on PRs; deploy only on merge to `main`.
+- **Path filters**: Workflow runs only when relevant files change, saving workflow minutes and keeping deploys intentional.
 - **Deployment metadata**: CI generates `version.json` (timestamp, commit SHA); the site displays “Last deployed” in the footer for traceability.
 - **GitHub Actions**: Use of `actions/checkout`, `actions/configure-pages`, `actions/upload-pages-artifact`, `actions/deploy-pages`, and third-party validation/link-check actions.
 - **GitHub Pages**: Static site hosting with zero extra configuration.
@@ -207,7 +220,7 @@ Configuration is in [**lighthouserc.json**](lighthouserc.json). You can change t
 - Add more static assets and extend workflow `paths` so only site-related changes trigger runs.
 - Add a **Lighthouse CI** or **performance budget** job to enforce performance/SEO before deploy.
 - Use a static site generator (Hugo, Jekyll, Astro): add a build job, upload the build output as the artifact, and trigger on source file changes.
-- Add **branch protection** on `main` so PRs must pass the “Validate site” workflow before merge.
+- Branch protection and post-deploy smoke test are already documented and (for smoke test) implemented; enable branch protection in GitHub Settings as in step 4 of [Repository Setup](#repository-setup).
 
 ## License
 

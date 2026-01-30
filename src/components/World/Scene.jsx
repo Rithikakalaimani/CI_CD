@@ -1,12 +1,15 @@
 import { Canvas } from '@react-three/fiber'
 import { Float, Text, Stars, OrbitControls } from '@react-three/drei'
 import { StagePillar } from './StagePillar'
+import { SideBuildings, preloadSideBuildings } from './SideBuildings'
 import { STAGES } from '../../content/stages'
+
+preloadSideBuildings()
 
 export function Scene({ onStageSelect, selectedId }) {
   return (
     <Canvas
-      camera={{ position: [0, 4, 10], fov: 50 }}
+      camera={{ position: [0, 5, 18], fov: 55 }}
       gl={{ antialias: true, alpha: false }}
     >
       <color attach="background" args={['#0d0a1a']} />
@@ -25,12 +28,15 @@ export function Scene({ onStageSelect, selectedId }) {
         <meshStandardMaterial color="#1a1535" roughness={0.9} metalness={0.1} />
       </mesh>
 
+      {/* Side buildings / environment — GLB models on left and right, blocks stay in center */}
+      <SideBuildings />
+
       <OrbitControls
         enablePan={true}
         enableZoom={true}
         enableRotate={true}
-        minDistance={4}
-        maxDistance={20}
+        minDistance={6}
+        maxDistance={32}
         maxPolarAngle={Math.PI / 2 - 0.1}
       />
 
