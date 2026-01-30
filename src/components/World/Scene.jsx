@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { Float, Text, Stars, OrbitControls } from '@react-three/drei'
 import { StagePillar } from './StagePillar'
 import { SideBuildings, preloadSideBuildings } from './SideBuildings'
+import { CherryBlossoms } from './CherryBlossoms'
 import { STAGES } from '../../content/stages'
 
 preloadSideBuildings()
@@ -9,7 +10,7 @@ preloadSideBuildings()
 export function Scene({ onStageSelect, selectedId }) {
   return (
     <Canvas
-      camera={{ position: [0, 5, 18], fov: 55 }}
+      camera={{ position: [0, 5, 24], fov: 50 }}
       gl={{ antialias: true, alpha: false }}
     >
       <color attach="background" args={['#0d0a1a']} />
@@ -21,6 +22,9 @@ export function Scene({ onStageSelect, selectedId }) {
 
       {/* Anime night sky feel */}
       <Stars radius={80} depth={50} count={2000} factor={4} saturation={0.6} fade speed={1} />
+
+      {/* Falling cherry blossom petals */}
+      <CherryBlossoms />
 
       {/* Ground plane — dark stone / dojo floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
@@ -35,8 +39,8 @@ export function Scene({ onStageSelect, selectedId }) {
         enablePan={true}
         enableZoom={true}
         enableRotate={true}
-        minDistance={6}
-        maxDistance={32}
+        minDistance={8}
+        maxDistance={45}
         maxPolarAngle={Math.PI / 2 - 0.1}
       />
 
