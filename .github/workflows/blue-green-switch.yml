@@ -1,0 +1,56 @@
+# Blue-green switch — promote inactive slot to live (traffic switch)
+# Run manually after testing the inactive slot at /REPO/blue/ or /REPO/green/
+# Resume: "Blue-green deployment with manual traffic switch."
+
+name: Blue-green switch
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  switch:
+    name: Switch traffic to inactive slot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - id: flip
+        run: |
+          ACTIVE=$(cat .blue-green/active.txt 2>/dev/null || echo "blue")
+          if [ "$ACTIVE" = "blue" ]; then
+            NEW_ACTIVE="green"
+          else
+            NEW_ACTIVE="blue"
+          fi
+          echo "new_active=$NEW_ACTIVE" >> "$GITHUB_OUTPUT"
+          echo "$NEW_ACTIVE" > .blue-green/active.txt
+      - name: Commit new active slot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .blue-green/active.txt
+          git diff --staged --quiet || git commit -m "Blue-green switch: live is now ${{ steps.flip.outputs.new_active }}"
+          git push origin HEAD:main
+      - name: Update redirect on gh-pages-content
+        run: |
+          git fetch origin gh-pages-content:refs/remotes/origin/gh-pages-content 2>/dev/null || true
+          if ! git show-ref --verify refs/remotes/origin/gh-pages-content >/dev/null 2>&1; then
+            echo "Branch gh-pages-content not found. Run Blue-green deploy first."
+            exit 1
+          fi
+          git checkout -B gh-pages-content origin/gh-pages-content
+          REPO="${{ github.event.repository.name }}"
+          NEW_ACTIVE="${{ steps.flip.outputs.new_active }}"
+          cat > index.html << EOF
+          <!DOCTYPE html>
+          <html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/${REPO}/${NEW_ACTIVE}/"></head><body>Redirecting to <a href="/${REPO}/${NEW_ACTIVE}/">${NEW_ACTIVE}</a>...</body></html>
+          EOF
+          git add index.html
+          git diff --staged --quiet || git commit -m "Switch traffic to $NEW_ACTIVE"
+          git push origin HEAD:gh-pages-content
+          echo "Traffic switched to $NEW_ACTIVE. Live at https://${{ github.repository_owner }}.github.io/$REPO/"

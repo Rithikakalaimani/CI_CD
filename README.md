@@ -29,6 +29,7 @@ An **anime-themed 3D learning environment** where you explore CI/CD concepts by 
 - **Pull request checks**: On pull requests that touch `index.html` or `lighthouserc.json`, the same checks run (no deploy). Merge only when checks are green.
 - **Deployment metadata**: Each deploy generates a `version.json` with timestamp and commit SHA. The site footer shows “Last deployed” and short SHA when viewing the live site.
 - **GitHub Pages**: The site is published using the official [GitHub Actions deployment](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site#publishing-with-a-custom-github-actions-workflow) flow (`actions/deploy-pages`).
+- **Blue-green deployment (optional)**: Path-based blue-green slots (`/blue/` and `/green/`) with deploy to the inactive slot and a manual **switch** workflow to promote it to live. See [Blue-green deployment](#blue-green-deployment).
 
 ## Repository Setup
 
@@ -77,7 +78,49 @@ The workflow is defined in [`.github/workflows/deploy.yml`](.github/workflows/de
 **Other workflows**
 
 - **[availability-check.yml](.github/workflows/availability-check.yml)** — Runs on a schedule (every 6 hours) and via **Run workflow**; curls the live site and fails if HTTP is not 200.
+- **[blue-green-deploy.yml](.github/workflows/blue-green-deploy.yml)** — When blue-green is enabled, builds the app for the inactive slot and pushes to branch `gh-pages-content` (see [Blue-green deployment](#blue-green-deployment)).
+- **[blue-green-switch.yml](.github/workflows/blue-green-switch.yml)** — Manual workflow to switch traffic to the inactive slot (promote it to live).
 - **Dependabot** (not a workflow) — Configured in [.github/dependabot.yml](.github/dependabot.yml); opens weekly PRs for npm and GitHub Actions updates.
+
+## Blue-green deployment
+
+This project supports an **optional** path-based blue-green deployment strategy: two slots (`blue` and `green`) are deployed under `https://<user>.github.io/<repo>/blue/` and `.../green/`. The root URL redirects to the currently **active** slot. You deploy new versions to the **inactive** slot, test them there, then **switch** traffic to make that slot live.
+
+### Enabling blue-green
+
+1. **Create the state file** so the blue-green workflow runs:
+   - Add a directory `.blue-green/` and a file `.blue-green/active.txt` containing either `blue` or `green` (the slot that is currently “live”). For example:
+     ```bash
+     mkdir -p .blue-green
+     echo blue > .blue-green/active.txt
+     git add .blue-green/active.txt
+     git commit -m "Enable blue-green deployment (blue is live)"
+     git push origin main
+     ```
+2. **Switch GitHub Pages to the content branch** (required for blue-green to serve the slots):
+   - In the repo: **Settings → Pages → Build and deployment**.
+   - Under **Source**, choose **Deploy from a branch** (not “GitHub Actions”).
+   - **Branch**: select `gh-pages-content` and `/ (root)`.
+   - Save. The first run of **Blue-green deploy** will create `gh-pages-content` if it doesn’t exist.
+
+After that, the **Blue-green deploy** workflow will run on pushes to `main` (same path filters as the main deploy). It builds the app with the correct base path for the inactive slot and updates the `gh-pages-content` branch. The root `index.html` on that branch redirects to the active slot.
+
+### URLs
+
+- **Live (redirects to active slot)**: `https://<user>.github.io/<repo>/`
+- **Blue slot**: `https://<user>.github.io/<repo>/blue/`
+- **Green slot**: `https://<user>.github.io/<repo>/green/`
+
+Test the inactive slot at its URL before switching.
+
+### Switching traffic (promote inactive to live)
+
+1. Deploy as usual (push to `main`); the new build goes to the **inactive** slot.
+2. Open the inactive slot URL (e.g. `.../green/`) and verify the new version.
+3. In the repo, open **Actions → Blue-green switch** → **Run workflow**.
+4. The workflow updates `.blue-green/active.txt` on `main` and the redirect on `gh-pages-content` so the root URL now points to the previously inactive slot. That slot is now live.
+
+_Resume: “Blue-green deployment with path-based slots and manual traffic switch.”_
 
 ## How to See It Working
 
@@ -192,8 +235,13 @@ Configuration is in [**lighthouserc.json**](lighthouserc.json). You can change t
 
 ```
 .
+├── .blue-green/
+│   └── active.txt        # Current live slot: "blue" or "green" (enables blue-green)
 ├── .github/workflows/
-│   └── deploy.yml        # Validate → build → Lighthouse CI → deploy
+│   ├── deploy.yml        # Validate → build → Lighthouse CI → deploy
+│   ├── blue-green-deploy.yml   # Deploy to inactive slot (when active.txt exists)
+│   ├── blue-green-switch.yml   # Manual: switch traffic to inactive slot
+│   └── availability-check.yml
 ├── src/
 │   ├── main.jsx          # Entry
 │   ├── App.jsx           # Root: Scene, OverlayPanel, AnalyticsHub
@@ -225,6 +273,7 @@ Configuration is in [**lighthouserc.json**](lighthouserc.json). You can change t
 - **Deployment metadata**: CI generates `version.json` (timestamp, commit SHA); the site displays “Last deployed” in the footer for traceability.
 - **GitHub Actions**: Use of `actions/checkout`, `actions/configure-pages`, `actions/upload-pages-artifact`, `actions/deploy-pages`, and third-party validation/link-check actions.
 - **GitHub Pages**: Static site hosting with zero extra configuration.
+- **Blue-green deployment**: Path-based blue/green slots with deploy to inactive slot and manual **Blue-green switch** workflow to promote to live. _Resume: “Blue-green deployment with path-based slots and manual traffic switch.”_ See [Blue-green deployment](#blue-green-deployment).
 
 ## Optional Next Steps
 
