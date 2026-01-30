@@ -22,7 +22,7 @@ export default function App() {
     <>
       {/* Top HUD: title + Hub button */}
       <div className="hud" style={{ top: 0, left: 0, right: 0, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
+        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
           Pipeline Shrine — CI/CD Learning Hub
         </div>
         <button
