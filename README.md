@@ -26,6 +26,7 @@ An **anime-themed 3D learning environment** where you explore CI/CD concepts by 
 - **Pull request checks**: On pull requests that touch `index.html` or `lighthouserc.json`, the same checks run (no deploy). Merge only when checks are green.
 - **Deployment metadata**: Each deploy generates a `version.json` with timestamp and commit SHA. The site footer shows “Last deployed” and short SHA when viewing the live site.
 - **GitHub Pages**: The site is published using the official [GitHub Actions deployment](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site#publishing-with-a-custom-github-actions-workflow) flow (`actions/deploy-pages`).
+- **Security scanning**: **CodeQL** runs on every push/PR to `main` (see [`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)). **Dependabot** is configured in [`.github/dependabot.yml`](.github/dependabot.yml); enable **Settings → Security → Dependabot** (and version updates) for automated dependency PRs. *Resume: “Integrated security scanning (CodeQL, Dependabot) into CI pipeline.”*
 
 ## Repository Setup
 
@@ -57,6 +58,9 @@ An **anime-themed 3D learning environment** where you explore CI/CD concepts by 
      - **Lighthouse CI**
    - Save. PRs targeting `main` will then need both checks to pass before merge.  
    *Resume: “Enforced branch protection with required CI checks before merge to main.”*
+
+5. **Dependabot (optional)**  
+   In **Settings → Security → Code security and analysis**, enable **Dependabot alerts** and **Dependabot security updates**. For weekly version-update PRs, enable **Dependabot version updates**; the repo already has [`.github/dependabot.yml`](.github/dependabot.yml) for `npm` and `github-actions`.
 
 ## Workflow Overview
 
@@ -180,12 +184,21 @@ The pipeline runs [Lighthouse CI](https://github.com/GoogleChrome/lighthouse-ci)
 
 Configuration is in [**lighthouserc.json**](lighthouserc.json). You can change thresholds or add audits there. Reports are saved as workflow artifacts and (optionally) to temporary public storage so you can open the HTML report from the Actions run.
 
+## Security scanning
+
+- **CodeQL** ([`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)): Runs on every **push** and **pull_request** to `main`. Analyzes JavaScript (and the repo’s code) for security issues and uploads results to the **Code scanning** tab (enable in **Settings → Security → Code security and analysis → Code scanning**).
+- **Dependabot** ([`.github/dependabot.yml`](.github/dependabot.yml)): Configured for **npm** and **github-actions** with weekly update PRs. Enable **Settings → Security → Dependabot** (alerts and, if desired, version updates) so Dependabot opens PRs for vulnerable or outdated dependencies.
+
 ## Project Structure
 
 ```
 .
-├── .github/workflows/
-│   └── deploy.yml        # Validate → build → Lighthouse CI → deploy
+├── .github/
+│   ├── dependabot.yml    # Dependabot config (npm, github-actions)
+│   ├── BRANCH_PROTECTION.md
+│   └── workflows/
+│       ├── deploy.yml    # Validate → build → Lighthouse CI → deploy → smoke-test
+│       └── codeql.yml    # CodeQL security analysis on push/PR
 ├── src/
 │   ├── main.jsx          # Entry
 │   ├── App.jsx           # Root: Scene, OverlayPanel, AnalyticsHub
@@ -207,6 +220,7 @@ Configuration is in [**lighthouserc.json**](lighthouserc.json). You can change t
 
 - **CI/CD**: Automated deployment on push to `main`, with a path-filtered trigger and quality gate before deploy.
 - **Branch protection**: Enforced branch protection with required CI checks (“Validate site”, “Lighthouse CI”) before merge to `main` — see [Repository Setup](#repository-setup) step 4.
+- **Security scanning**: CodeQL runs on push/PR to `main`; Dependabot config in `.github/dependabot.yml` — enable in Settings → Security → Dependabot. *Resume: “Integrated security scanning (CodeQL, Dependabot) into CI pipeline.”*
 - **Quality gates**: HTML validation (W3C Nu Validator), link checking (lychee), and Lighthouse CI (performance, accessibility, best practices, SEO) must pass before deployment; any failure blocks deploy.
 - **Post-deploy smoke test**: After deploy, a job curls the live GitHub Pages URL, asserts HTTP 200, and checks that critical content (e.g. “Pipeline Shrine”) is present. *Resume: “Post-deployment smoke tests to verify production availability and critical content.”*
 - **Pull request integration**: Same validation runs on PRs; deploy only on merge to `main`.
