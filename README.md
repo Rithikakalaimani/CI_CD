@@ -1,10 +1,9 @@
 # Pipeline Shrine — CI/CD Learning Hub
 
-[![Deploy](https://github.com/OWNER/REPO/actions/workflows/deploy.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/deploy.yml)
 
 An anime-themed **3D learning app** for CI/CD: explore concepts by visiting shrines, view live pipeline metrics, and inspect the deployment architecture. Deploys to **GitHub Pages** via a path-filtered workflow with quality gates and Lighthouse CI.
 
-> Replace `OWNER` and `REPO` in the badge with your GitHub username and repo name.
+> Link :** [https://rithikakalaimani.github.io/CI_CD/](https://rithikakalaimani.github.io/CI_CD/)
 
 ---
 
@@ -17,23 +16,15 @@ An anime-themed **3D learning app** for CI/CD: explore concepts by visiting shri
 | **Analytics Hub** | Dashboard with pipeline metrics: last deploy, build time, commits today, repo stats, page load. |
 | **Architecture** | `/architecture` — pipeline DAG, triggers, and quality gates, generated at build from the workflow. |
 
-**Stack:** Vite, React, Three.js (React Three Fiber), Cytoscape.js (DAG).
+**Stack:** Vite, React, Three.js , Cytoscape.js (DAG).
 
-![Pipeline Shrine — 3D hub](screenshots/Screenshot%202026-01-31%20at%2012.21.47%20AM.png)
+!(https://github.com/Rithikakalaimani/CI_CD/blob/main/screenshots/Screenshot%202026-01-31%20at%2012.21.47%E2%80%AFAM.png)
 
-*3D learning hub with shrines and cherry blossoms.*
+!(https://github.com/Rithikakalaimani/CI_CD/blob/main/screenshots/Screenshot%202026-01-31%20at%2012.22.01%E2%80%AFAM.png)
 
-![Shrine panel with live metrics](screenshots/Screenshot%202026-01-31%20at%2012.22.01%20AM.png)
+!(https://github.com/Rithikakalaimani/CI_CD/blob/main/screenshots/Screenshot%202026-01-31%20at%2012.22.31%E2%80%AFAM.png)
 
-*Click a shrine to see the concept and live metric.*
-
-![Analytics Hub](screenshots/Screenshot%202026-01-31%20at%2012.22.31%20AM.png)
-
-*Pipeline and repo metrics from version.json and GitHub API.*
-
-![Architecture — pipeline DAG](screenshots/Screenshot%202026-01-31%20at%2012.22.49%20AM.png)
-
-*Infrastructure visualization: DAG, triggers, quality gates.*
+!(https://github.com/Rithikakalaimani/CI_CD/blob/main/screenshots/Screenshot%202026-01-31%20at%2012.22.49%E2%80%AFAM.png)
 
 ---
 
@@ -69,35 +60,7 @@ Build (generates `public/architecture.json` from the workflow and outputs to `di
 npm run build
 ```
 
----
 
-## Project layout
-
-```
-├── .github/workflows/   # deploy.yml, availability-check.yml
-├── src/
-│   ├── App.jsx, main.jsx
-│   ├── components/      # World (3D), PipelineDag, AnalyticsHub, OverlayPanel
-│   ├── pages/           # ArchitecturePage
-│   ├── content/stages.js
-│   └── hooks/useDeployAnalytics.js
-├── scripts/             # generate-architecture.js, copy-404.js
-├── public/              # models, architecture.json (build-time)
-├── index.html, vite.config.js, lighthouserc.json
-└── screenshots/         # Images for this README
-```
-
----
-
-## Resume / talking points
-
-- **CI/CD:** Path-filtered deploy on push to `main`; quality gates (HTML, links, npm audit, Lighthouse) block deploy on failure.
-- **Branch protection:** Required CI checks before merge to `main`.
-- **Post-deploy:** Smoke test (HTTP 200 + critical content) and scheduled availability checks.
-- **Infra viz:** Pipeline DAG and triggers generated at build from workflow config; documented in `/architecture`.
-- **GitHub Actions:** checkout, configure-pages, upload-pages-artifact, deploy-pages; third-party validation/Lighthouse actions.
-
----
 
 ## License
 
