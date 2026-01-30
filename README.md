@@ -28,12 +28,51 @@ An anime-themed **3D learning app** for CI/CD: explore concepts by visiting shri
 
 ---
 
-## CI/CD pipeline
+## CI/CD pipeline — what’s implemented
 
-- **Triggers:** `push` or `pull_request` to `main` when `index.html`, `src/**`, package files, or `scripts/**` change.
-- **Quality gates:** HTML validation (W3C), link check (Lychee), `npm audit` (high/critical), Lighthouse CI. Deploy only if all pass.
-- **Jobs:** validate → build → lighthouse → deploy (push only) → smoke-test (push only).
-- **Other:** [availability-check.yml](.github/workflows/availability-check.yml) (scheduled + manual), [dependabot.yml](.github/dependabot.yml) (weekly dependency PRs). Optional: `DEPLOY_NOTIFY_WEBHOOK` for deploy notifications.
+### Triggers
+
+The main workflow ([`deploy.yml`](.github/workflows/deploy.yml)) runs only when relevant files change, so you don’t waste runs on README-only commits.
+
+- **Events:** `push` to `main` and `pull_request` targeting `main`.
+- **Path filters:** The workflow runs only if at least one of these changed:
+  - `index.html`
+  - `lighthouserc.json`
+  - `package.json`, `package-lock.json`
+  - `src/**`
+  - `scripts/**`
+  - `vite.config.js`
+- **Concurrency:** One deploy at a time per ref (`pages-${{ github.ref }}`), with `cancel-in-progress: false` so the latest run completes.
+
+### Quality gates (all must pass before deploy)
+
+| Gate | Where | What it does |
+|------|--------|---------------|
+| **HTML validation** | validate job | Sends `index.html` to W3C Nu Validator (validator.nu). Fails the job on any reported error. |
+| **Link check** | validate job | [Lychee](https://github.com/lycheeverse/lychee-action) checks links in `index.html`. Fails if any link is broken. |
+| **npm audit** | build job | `npm audit --audit-level=high`. Fails if high or critical vulnerabilities exist; blocks build and deploy. |
+| **Lighthouse CI** | lighthouse job | Runs [Lighthouse CI](https://github.com/treosh/lighthouse-ci-action) against the built site using [lighthouserc.json](lighthouserc.json). Asserts performance, accessibility, best practices, SEO. Reports are uploaded as workflow artifacts and to temporary public storage. |
+
+If any of these fail, the pipeline stops and **deploy does not run**.
+
+### Jobs and flow
+
+1. **validate** — Checkout → W3C HTML validation → Lychee link check. No dependencies.
+2. **build** — Checkout → Node 20 + npm cache → `npm ci` → `npm audit` → `npm run build` → write `version.json` (deployedAt, sha, shortSha, buildDurationSeconds, checksPassed) into `dist/` → upload `dist/` as the Pages artifact. Exposes `VITE_GITHUB_REPO` so the app can show “Commits today” from the GitHub API.
+3. **lighthouse** — Depends on **build**. Checkout → install → build → run Lighthouse CI against `dist/`.
+4. **deploy** — Depends on **validate**, **build**, and **lighthouse**. Runs only on `push` to `main`. Uses `actions/configure-pages` and `actions/deploy-pages` to publish the artifact to GitHub Pages. Optional: if `DEPLOY_NOTIFY_WEBHOOK` secret is set, sends a POST (e.g. Slack/Discord) on success.
+5. **smoke-test** — Depends on **deploy**. Runs only on `push` to `main`. Waits 45s, then curls the live site: asserts HTTP 200 and that the response body contains “Pipeline Shrine”.
+
+On **pull_request**, only validate, build, and lighthouse run; deploy and smoke-test are skipped.
+
+### Deployment metadata
+
+The build job writes `version.json` into `dist/` with: `deployedAt`, `sha`, `shortSha`, `buildDurationSeconds`, `checksPassed`. The deployed app fetches this and shows “Last deploy”, “Build time”, “Commit SHA”, “Pipeline health” in the Analytics Hub and shrine panels.
+
+### Other workflows and automation
+
+- **[availability-check.yml](.github/workflows/availability-check.yml)** — Runs on a schedule (every 6 hours) and via **Run workflow**. Single job: curl the live GitHub Pages URL and fail if the response is not HTTP 200. Used to monitor that the site is up.
+- **[dependabot.yml](.github/dependabot.yml)** — Weekly dependency updates: **npm** (up to 5 open PRs) and **GitHub Actions** (up to 3 open PRs). You get PRs to bump packages and actions; merge after CI passes.
 
 ---
 
