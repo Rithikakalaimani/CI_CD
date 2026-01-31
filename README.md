@@ -3,7 +3,7 @@
 
 An anime-themed **3D learning app** for CI/CD: explore concepts by visiting shrines, view live pipeline metrics, and inspect the deployment architecture. Deploys to **GitHub Pages** via a path-filtered workflow with quality gates and Lighthouse CI.
 
-> Link :** [https://rithikakalaimani.github.io/CI_CD/](https://rithikakalaimani.github.io/CI_CD/)
+> Link :[https://rithikakalaimani.github.io/CI_CD/](https://rithikakalaimani.github.io/CI_CD/)
 
 ---
 
